@@ -42,10 +42,10 @@ Resources:
             yum update -y
             yum install python3 -y
             pip3 install flask  
-            wget -P templates https://raw.githubusercontent.com/ruslancybertek/clarusway-python-workshop/master/hands-on-flask-01-hello-world-app-on-ec2-linux2/templates/index.html
-            wget -P templates https://raw.githubusercontent.com/ruslancybertek/clarusway-python-workshop/master/hands-on-flask-01-hello-world-app-on-ec2-linux2/templates/result.html
-            wget https://raw.githubusercontent.com/ruslancybertek/clarusway-python-workshop/master/hands-on-flask-01-hello-world-app-on-ec2-linux2/romanNumeralConvertor.py
-            python3 romanNumeralConvertor.py
+            wget -P templates https://raw.githubusercontent.com/ruslancybertek/clarusway-aws-workshop/master/002-milliseconds-converter/templates/index.html
+            wget -P templates https://raw.githubusercontent.com/ruslancybertek/clarusway-aws-workshop/master/002-milliseconds-converter/templates/result.html
+            wget https://raw.githubusercontent.com/ruslancybertek/clarusway-aws-workshop/master/002-milliseconds-converter/millisecond-convertor.py
+            python3 millisecond-convertor.py
              
 
 
