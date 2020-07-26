@@ -1,0 +1,101 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  Cloudformation template for milliseconds converter application
+  This app runs on application load balancer
+
+Resources:
+  ALBSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: Enable HTTP for ALB #required
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidIp: 0.0.0.0/0
+  WebServersSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: Enable HTTP for App only from ALB #required
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: !GetAtt ALBSecurityGroup.GroupId
+  WebServerLT:
+    Type: "AWS::EC2::LaunchTemplate"
+    Properties:
+      LaunchTemplateData:
+        InstanceType: t2.micro
+        KeyName: linux
+        ImageId: ami-08f3d892de259504d
+        SecurityGroupIds:
+          - !GetAtt WebServersSecurityGroup.GroupId
+        TagSpecifications: 
+          - ResourceType: InstanceType
+            Tags:
+              Key: Name
+              Value: !Sub Web Server of ${AWS::StackName} Stack  
+        UserData: 
+          Fn::!Base64: |
+            #! /bin/bash
+            yum update -y
+            yum install python3 -y
+            pip3 install flask  
+            wget -P templates https://raw.githubusercontent.com/ruslancybertek/clarusway-python-workshop/master/hands-on-flask-01-hello-world-app-on-ec2-linux2/templates/index.html
+            wget -P templates https://raw.githubusercontent.com/ruslancybertek/clarusway-python-workshop/master/hands-on-flask-01-hello-world-app-on-ec2-linux2/templates/result.html
+            wget https://raw.githubusercontent.com/ruslancybertek/clarusway-python-workshop/master/hands-on-flask-01-hello-world-app-on-ec2-linux2/romanNumeralConvertor.py
+            python3 romanNumeralConvertor.py
+             
+
+
+  WebServerTG:
+    Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+    Properties:
+      Port: 80
+      Protocol: HTTP
+      TargetType: instance
+      UnhealthyThresholdCount: Integer
+      VpcId: !GetAtt WebServersSecurityGroup.VpcId
+  ApplicationLoadBalancer:
+    Type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
+    Properties:
+      IpAddressType: ipv4
+      Scheme: internet-facing
+      SecurityGroups:
+        - !GetAtt ALBSecurityGroup.GroupId
+      Subnets:
+        - subnet-058a3048
+      Type: application
+  LogicalID:
+    Type: "AWS::ElasticLoadBalancingV2::Listener"
+    Properties:
+      DefaultActions: #required        
+        - TargetGroupArn: !Ref WebServerTG
+          Type: forward
+      LoadBalancerArn: !Ref ApplicationLoadBalancer #required
+      Port: 80 #required
+      Protocol: HTTP #required
+      SslPolicy: String
+  WebServerASG:
+    Type: "AWS::AutoScaling::AutoScalingGroup"
+    Properties:
+      AvailabilityZones:
+        !GetAZs ""
+      DesiredCapacity: 2
+      HealthCheckGracePeriod: 90
+      HealthCheckType: ELB
+      LaunchTemplate: 
+        LaunchTemplateId: !Ref WebServerLT
+        Version: !GetAtt WebServerLT.LatestVersionNumber
+      MaxSize: 3 #required
+      MinSize: 1 #required
+      TargetGroupARNs:
+        - !Ref WebServerTG
+
+Outputs:
+  WebsiteURL:
+    Description: Milliseconds converter
+    Value: !Sub
+      - http://${ALBaddress}
+      -ALBaddress: !GetAtt ApplicationLoadBalancer.DNSName
